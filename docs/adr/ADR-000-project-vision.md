@@ -257,3 +257,4 @@ Future ADRs will define:
 The project aims to democratize self-hosting by transforming idle commodity hardware into reusable infrastructure.
 
 Rather than requiring users to understand hardware compatibility, networking, deployment, and infrastructure management, the platform should discover available resources, recommend suitable workloads, and automate deployment while preserving privacy, ownership, and sustainability.
+

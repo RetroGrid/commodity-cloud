@@ -16,7 +16,7 @@ Core Domain Abstractions
 
 Commodity Cloud aims to transform heterogeneous commodity hardware into a cohesive personal infrastructure platform.
 
-Rather than modelling specific hardware platforms such as phones, tablets, laptops, or Raspberry Pis, the platform models the characteristics and relationships that exist between devices, workloads, and users.
+Rather than modelling specific hardware platforms such as smartphones, tablets, laptops, or Raspberry Pis, the platform models the characteristics and relationships that exist between devices, workloads, and users.
 
 To achieve this, the project defines a common domain language that remains independent of implementation details.
 
@@ -26,13 +26,32 @@ These abstractions form the vocabulary used throughout the platform.
 
 # Decision
 
-The platform defines the following core abstractions.
+Commodity Cloud defines the following core domain abstractions.
+
+---
+
+# Infrastructure
+
+An **Infrastructure** represents the administrative and operational boundary of the platform.
+
+It owns all participating Nodes, Identities, Intents, Policies and Workloads.
+
+An Infrastructure represents a complete deployment, such as:
+
+- Home
+- Office
+- Lab
+- Holiday Home
+- Small Business
+- Classroom
+
+An Infrastructure is the primary aggregate of the domain.
 
 ---
 
 # Node
 
-A **Node** is any computational device capable of participating in the platform.
+A **Node** is any computational device capable of participating in an Infrastructure.
 
 Examples include:
 
@@ -48,9 +67,7 @@ Examples include:
 - Virtual Machine
 - Cloud Instance
 
-A Node is the primary unit managed by the platform.
-
-Nodes possess Resources, Capabilities and Constraints.
+Nodes provide Resources, Capabilities, and Constraints.
 
 Nodes may be assigned one or more Roles.
 
@@ -87,10 +104,9 @@ Examples include:
 
 - Root Access
 - USB Host
-- Bluetooth
 - Docker Support
 - Hardware Encryption
-- GPU Acceleration
+- Bluetooth
 - Camera
 - Hardware Virtualization
 
@@ -100,7 +116,7 @@ Capabilities determine whether a Workload is compatible with a Node.
 
 # Constraint
 
-A **Constraint** represents a limitation affecting a Node.
+A **Constraint** represents any limitation affecting a Node.
 
 Constraints may be permanent or temporary.
 
@@ -117,32 +133,32 @@ Constraints influence workload suitability and scheduling decisions.
 
 ---
 
-# Workload
+# Intent
 
-A **Workload** represents any deployable software or service managed by Commodity Cloud.
+An **Intent** represents a desired outcome for an Infrastructure.
+
+Intent describes **what** the user wants to achieve without specifying how it should be implemented.
 
 Examples include:
 
-- DNS Server
-- VPN
-- NAS
+- Personal Cloud
 - Media Server
-- Monitoring
-- AI Inference
-- Home Automation
-- Backup Service
+- Secure Remote Access
+- AI Development Environment
+- Smart Home
+- Backup Solution
 
-A Workload consumes Resources and requires Capabilities.
+An Infrastructure may have multiple Intents.
 
-Multiple Workloads may coexist on a single Node, subject to available Resources and applicable Constraints.
+Intents drive Recommendations.
 
 ---
 
 # Policy
 
-A **Policy** represents user intent.
+A **Policy** represents rules and preferences governing how the platform should satisfy an Intent.
 
-Policies define the desired behaviour of the platform without prescribing implementation.
+Policies constrain or guide decision making.
 
 Examples include:
 
@@ -153,17 +169,21 @@ Examples include:
 - Prefer wired networking
 - Keep AI workloads isolated
 
-Policies influence workload placement and infrastructure decisions.
+Policies influence Recommendations but do not define desired outcomes.
 
 ---
 
 # Role
 
-A **Role** represents the responsibility assigned to a Node within an infrastructure.
+A **Role** represents a responsibility assigned to a Node within an Infrastructure.
 
-Roles are not intrinsic properties of hardware.
+Roles are derived from:
 
-They are derived from available Resources, Capabilities, Constraints and Policies.
+- Available Resources
+- Available Capabilities
+- Existing Constraints
+- Infrastructure Intents
+- Infrastructure Policies
 
 Examples include:
 
@@ -177,7 +197,28 @@ Examples include:
 
 A Node may hold multiple Roles simultaneously.
 
-Roles may change over time without changing the identity of the Node.
+Roles may change throughout the lifetime of an Infrastructure without changing the identity of the Node.
+
+---
+
+# Workload
+
+A **Workload** represents any deployable software or service managed by Commodity Cloud.
+
+Examples include:
+
+- DNS Server
+- VPN
+- NAS
+- Monitoring
+- Media Server
+- Home Automation
+- AI Inference
+- Backup Service
+
+Workloads consume Resources and require Capabilities.
+
+Workloads are deployed onto Nodes according to assigned Roles.
 
 ---
 
@@ -203,26 +244,28 @@ Identity enables authentication, authorization and ownership across the platform
 # Relationship Overview
 
 ```text
-                    Identity
-                        │
-                        ▼
-                     Policy
-                        │
-                        ▼
                   Infrastructure
-                        │
-                        ▼
-                 Assigns Role(s)
-                        │
-                        ▼
-                      Node
-              ┌─────────┼─────────┐
-              ▼         ▼         ▼
-        Resource   Capability  Constraint
-              ▲
-              │
-              ▼
-           Workload
+                         │
+     ┌───────────────────┼────────────────────┐
+     │                   │                    │
+     ▼                   ▼                    ▼
+ Identity             Intent              Policy
+                            │               │
+                            └──────┬────────┘
+                                   ▼
+                          Recommendation
+                                   │
+                                   ▼
+                                 Role
+                                   │
+                                   ▼
+                               Workload
+                                   │
+                                   ▼
+                                 Node
+                     ┌─────────────┼─────────────┐
+                     ▼             ▼             ▼
+                Resource     Capability    Constraint
 ```
 
 ---
@@ -231,28 +274,28 @@ Identity enables authentication, authorization and ownership across the platform
 
 ## Positive
 
-- Hardware-independent domain model.
-- Stable vocabulary across the project.
-- Clear separation between domain concepts and implementation.
+- Provides a stable ubiquitous language.
+- Clearly separates user intent from operational policy.
+- Separates domain concepts from implementation.
 - Supports heterogeneous hardware from the outset.
-- Allows future expansion without changing existing abstractions.
+- Enables future expansion without changing existing abstractions.
 
 ## Negative
 
-- Requires careful discipline when introducing new concepts.
-- Initial modelling effort is higher than immediately implementing features.
+- Requires discipline when introducing additional concepts.
+- Initial modelling effort is greater than immediately implementing features.
 
 ---
 
 # Future Work
 
-Future ADRs will further define:
+Subsequent ADRs will define:
 
+- Infrastructure Model
 - Node Model
 - Resource Model
 - Capability Model
 - Constraint Model
-- Workload Model
 - Identity Model
 - Recommendation Architecture
 - Deployment Architecture
@@ -263,4 +306,4 @@ Future ADRs will further define:
 
 This ADR intentionally defines **domain concepts only**.
 
-Software components such as discovery engines, recommendation engines, deployment engines, schedulers and agents are implementation concerns and will be defined in later ADRs.
+Software components such as discovery services, recommendation engines, deployment engines, schedulers and agents are implementation concerns and are intentionally excluded from this document.

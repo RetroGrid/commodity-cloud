@@ -202,6 +202,27 @@ Extending the useful life of existing hardware is preferred over recommending ne
 
 ---
 
+## Design Principles
+
+Commodity Cloud is guided by the following principles:
+
+### Outcome-Oriented
+
+Users describe the outcomes they want to achieve rather than the infrastructure they wish to manage.
+
+### Intelligent by Default
+
+The platform recommends and, where appropriate, automatically provisions a configuration that best satisfies the user's intents and policies using the available hardware.
+
+### Commodity First
+
+The platform prioritizes the reuse of existing commodity hardware before recommending new hardware.
+
+### Progressive Complexity
+
+The platform provides sensible defaults for most users while allowing advanced users to customize behaviour when required.
+
+
 # Non-Goals
 
 This project is **not** intended to:
@@ -211,6 +232,9 @@ This project is **not** intended to:
 - Replace enterprise orchestration systems
 - Replace public cloud providers
 - Manage hyperscale infrastructure
+- Require users to understand infrastructure concepts.
+- Expose topology as the primary configuration mechanism.
+- Optimize exclusively for high-performance or enterprise-scale deployments.
 
 The target audience is:
 
@@ -257,4 +281,3 @@ Future ADRs will define:
 The project aims to democratize self-hosting by transforming idle commodity hardware into reusable infrastructure.
 
 Rather than requiring users to understand hardware compatibility, networking, deployment, and infrastructure management, the platform should discover available resources, recommend suitable workloads, and automate deployment while preserving privacy, ownership, and sustainability.
-

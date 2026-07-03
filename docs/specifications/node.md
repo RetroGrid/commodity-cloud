@@ -2,11 +2,9 @@
 
 ## Purpose
 
-A Node represents a computational device that participates in an Infrastructure.
+A Node represents a computational device participating in an Infrastructure.
 
 Nodes provide compute, storage and networking resources capable of hosting one or more Workloads.
-
-A Node is the fundamental execution unit managed by Commodity Cloud.
 
 ---
 
@@ -14,9 +12,9 @@ A Node is the fundamental execution unit managed by Commodity Cloud.
 
 A Node is responsible for:
 
-- Advertising its Resources.
-- Advertising its Capabilities.
-- Reporting its Constraints.
+- Providing Resources.
+- Advertising Capabilities.
+- Reporting Constraints.
 - Hosting assigned Workloads.
 - Reporting operational health.
 
@@ -30,12 +28,12 @@ A Node is responsible for:
 | name | Yes | Human-readable name |
 | manufacturer | No | Device manufacturer |
 | model | No | Device model |
-| category | Yes | Device category (phone, tablet, laptop, SBC, VM, etc.) |
+| category | Yes | Device category |
 | operatingSystem | Yes | Installed operating system |
 | resources | Yes | Available Resources |
 | capabilities | Yes | Supported Capabilities |
 | constraints | No | Known Constraints |
-| roles | No | Assigned Roles |
+| roles | No | Roles fulfilled within the Infrastructure |
 | labels | No | User-defined metadata |
 | annotations | No | System-generated metadata |
 
@@ -50,7 +48,7 @@ A Node:
 - provides Capabilities.
 - may have Constraints.
 - may host multiple Workloads.
-- may be assigned multiple Roles.
+- may fulfil multiple Roles.
 
 ---
 
@@ -64,3 +62,17 @@ Examples of Nodes include:
 - Lenovo ThinkCentre
 - Synology NAS
 - Virtual Machine
+
+---
+
+## Open Design Questions
+
+The following questions are intentionally deferred until the architecture phase:
+
+- How are Nodes discovered?
+- When does a discovered device become a managed Node?
+- How are Roles assigned or determined?
+- Can users manually influence Role assignment?
+- How are Workloads matched to Nodes?
+
+These questions have multiple valid solutions and will be addressed when designing the platform architecture.

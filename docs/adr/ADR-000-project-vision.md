@@ -222,6 +222,9 @@ The platform prioritizes the reuse of existing commodity hardware before recomme
 
 The platform provides sensible defaults for most users while allowing advanced users to customize behaviour when required.
 
+### Earning Complexity
+
+Commodity Cloud should earn its complexity.
 
 # Non-Goals
 

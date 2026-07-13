@@ -107,10 +107,17 @@ def get_ram_free_mb() -> int:
                 subprocess.check_output(["sysctl", "-n", "hw.pagesize"], text=True).strip()
             )
             vm_stat = subprocess.check_output(["vm_stat"], text=True)
+            # macOS memory model: "available" = free + inactive + speculative + purgeable
+            # "Pages free" alone (~500MB) understates available memory by 10x.
+            # Activity Monitor's "Available Memory" uses this broader definition.
+            reclaimable_labels = ("Pages free", "Pages inactive", "Pages speculative", "Pages purgeable")
+            total_reclaimable = 0
             for line in vm_stat.splitlines():
-                if "Pages free" in line:
+                if any(line.startswith(label) for label in reclaimable_labels):
                     pages = int(line.split(":")[1].strip().rstrip("."))
-                    return (pages * page_size) // (1024 * 1024)
+                    total_reclaimable += pages
+            if total_reclaimable > 0:
+                return (total_reclaimable * page_size) // (1024 * 1024)
         if system == "Windows":
             import subprocess
             out = subprocess.check_output(

@@ -4,6 +4,8 @@
 
 **Date:** 2026-07-13
 
+**Supersedes:** bash prototype (node-heartbeat.sh — Linux/macOS only)
+
 ---
 
 ## Context
@@ -36,29 +38,26 @@ The CLI reads `node-status.json` when queried. It does not receive push notifica
 
 ---
 
-## Implementation Per Platform
+## Implementation
 
-### Android
+The canonical implementation is `scripts/node-heartbeat.py` — a single Python 3 script with no third-party dependencies.
 
-A background `Service` added to the existing workload APK writes `node-status.json` to `/sdcard/commoditycloud/node-status.json`.
+It runs on:
 
-The provisioner reads it via ADB:
+| Platform | Runtime | Output path |
+|---|---|---|
+| Linux | `python3 node-heartbeat.py` | `~/.commoditycloud/node-status.json` |
+| macOS | `python3 node-heartbeat.py` | `~/.commoditycloud/node-status.json` |
+| Windows | `python node-heartbeat.py` | `%LOCALAPPDATA%\CommodityCloud\node-status.json` |
+| Android (Termux) | `python node-heartbeat.py` | `~/.commoditycloud/node-status.json` |
+| Android (native) | Background `Service` in workload APK | `/sdcard/commoditycloud/node-status.json` |
 
-```
-adb shell cat /sdcard/commoditycloud/node-status.json
-```
+The provisioner reads status via:
+- **Linux/macOS node:** `ssh user@node cat ~/.commoditycloud/node-status.json`
+- **Android node:** `adb shell cat /sdcard/commoditycloud/node-status.json`
+- **Windows node:** `ssh user@node type %LOCALAPPDATA%\CommodityCloud\node-status.json`
 
-### Linux
-
-A cron job or systemd timer runs `node-heartbeat.sh` every 60 seconds.
-
-Output is written to `/var/lib/commoditycloud/node-status.json`.
-
-The provisioner reads it via SSH:
-
-```
-ssh user@node cat /var/lib/commoditycloud/node-status.json
-```
+Python was chosen as the canonical runtime because it is already a declared dependency of the Toolkit (required by `start-transfer.sh`).
 
 ---
 
@@ -67,6 +66,7 @@ ssh user@node cat /var/lib/commoditycloud/node-status.json
 ```json
 {
   "node_id": "galaxy-tab-001",
+  "platform": "android-termux",
   "timestamp": "2026-07-13T10:00:00Z",
   "uptime_seconds": 3600,
   "workload": "digitalphotoframe",
@@ -77,6 +77,8 @@ ssh user@node cat /var/lib/commoditycloud/node-status.json
   }
 }
 ```
+
+Valid `platform` values: `linux`, `macos`, `windows`, `android-termux`, `android-native`, `unknown`.
 
 ---
 

@@ -41,7 +41,7 @@ A Node is responsible for:
 
 ## v1 Schema (frozen — Issue #1)
 
-Concrete JSON shape for the structured properties above. A fully annotated worked example (Samsung Galaxy Tab, SHW-M380W) is at `docs/specifications/node.example.jsonc`.
+Concrete JSON shape for the structured properties above. A fully annotated worked example (Samsung Galaxy Tab, SHW-M380W) is at `docs/specifications/examples/node.example.jsonc`.
 
 ### `category` (enum)
 
@@ -127,7 +127,7 @@ Examples of Nodes include:
 - Synology NAS
 - Virtual Machine
 
-A fully worked example (Samsung Galaxy Tab, SHW-M380W) is available at `docs/specifications/node.example.jsonc`.
+A fully worked example (Samsung Galaxy Tab, SHW-M380W) is available at `docs/specifications/examples/node.example.jsonc`.
 
 ---
 

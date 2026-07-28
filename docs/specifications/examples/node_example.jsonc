@@ -1,0 +1,83 @@
+// ============================================================================
+// node.json — v1.2 (SCHEMA REFERENCE EXAMPLE)
+// Commodity Cloud — Issue #1: node.json schema freeze
+//
+// Changelog:
+//   v1   — 2026-07-27 — Initial schema freeze. Every field decision and its
+//     rationale is recorded in node-json-schema-decisions.md. First version;
+//     no prior schema exists to diff against. Resource/spec values were
+//     ILLUSTRATIVE placeholders (era-plausible, not measured).
+//   v1.1 — 2026-07-27 — Model identified as SHW-M380W (Samsung Galaxy Tab
+//     10.1 Wi-Fi, Tegra 2, 2011). Replaced illustrative values with
+//     web-researched real specs for this exact model where found.
+//     CORRECTION: v1's "distribution: null" was asserted as "confirmed
+//     stock Android" — that was an unverified assumption, not a fact, and
+//     it was wrong. This model ships with Samsung TouchWiz UX, not stock.
+//     Two fields flagged CONFLICTING/UNCONFIRMED rather than guessed:
+//     usbPortType (accessory listings said 30-pin; one spec aggregator
+//     said micro-USB) and exact storage capacity (16GB vs 32GB SKU).
+//   v1.2 — 2026-07-27 — Physically verified against the real device:
+//     usbPortType CONFIRMED 30-pin proprietary (not micro-USB — the
+//     aggregator site in v1.1 was wrong). storage CONFIRMED 32GB.
+//     Historical note: Session 1 records ("Kite software") named the
+//     required PC sync tool — user recalls this was actually Samsung
+//     Kies, the real Samsung PC suite of that era. Unconfirmed with
+//     certainty, not corrected in this file — flagged for whoever
+//     revisits the Session 1 log.
+//
+// IMPORTANT: This is an ANNOTATED REFERENCE EXAMPLE for
+// docs/specifications/node.md. It is NOT the literal Inspector-generated
+// node.json for the physical Galaxy Tab — producing that is separate,
+// later M2 work (the Inspector script, still to be built).
+// Real Inspector output MUST be plain, comment-free, valid JSON with
+// zero placeholder fields, per sprint success criterion #2.
+// Wi-Fi standard and Bluetooth version below remain UNCONFIRMED — not
+// found in search results for this specific model and not yet verified
+// against the physical unit.
+// ============================================================================
+{
+  "id": "R34C700378",
+  "name": "Galaxy Tab",
+  "manufacturer": "Samsung",
+  "model": "SHW-M380W",
+  "category": "tablet",
+  "operatingSystem": {
+    "name": "android",
+    "version": "4.0.4",
+    "apiLevel": 15,
+    "distribution": "TouchWiz UX"
+  },
+  "resources": {
+    "cpu": {
+      "cores": 2,
+      "architecture": "armv7"
+    },
+    "ramTotalMb": 1024,
+    "storage": [
+      {
+        "type": "internal",
+        "totalGb": 32
+      }
+    ],
+    "battery": {
+      "designCapacityMah": 7000,
+      "healthPercent": null
+    },
+    "usbPortType": "30-pin-proprietary",
+    "connectivity": {
+      "wifi": {
+        "supported": true,
+        "standard": "802.11n"
+      },
+      "bluetooth": {
+        "supported": true,
+        "version": "3.0"
+      },
+      "cellular": null
+    }
+  },
+  "capabilities": [],
+  "constraints": [
+    "usb_data_unavailable"
+  ]
+}

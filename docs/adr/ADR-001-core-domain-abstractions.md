@@ -82,6 +82,8 @@ Examples include:
 
 Resources are finite and consumable.
 
+> **Amendment — node.json v1 (Issue #1, 2026-07-27):** For the `node.json` schema specifically, Resource is widened beyond strictly consumable quantities to also include intrinsic hardware compatibility facts that aren't allocatable but are still physical properties of the node — e.g. USB port type, supported connectivity standards (Wi-Fi/Bluetooth/cellular). Capability remains reserved for binary/categorical *software-observable* abilities (Root Access, ADB Enabled, Docker Support). GPU Memory and measured Network Bandwidth remain unimplemented in `node.json` v1 — not yet earned by a real device experiment or stated use case (Engineering Principle #1: experiment before abstraction). See `docs/specifications/node.md` for the frozen schema and `docs/decisions/parking-lot.md` for the deferred items.
+
 ---
 
 # Capability

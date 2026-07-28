@@ -34,6 +34,7 @@ Should Roles be:
 
 - assigned before deployment,
 - inferred from deployed Workloads,
++**Note (added during node.json v1 freeze, Issue #1):** related sub-question surfaced — once role assignment exists, does `node.json.roles` need a way to represent "evaluated and found unsuitable for any role," distinct from "not yet evaluated"? The v1 Inspector omits `roles` entirely rather than guess at this semantics ahead of a real evaluator. Revisit alongside the main question above.
 - or support both approaches?
 
 ---
@@ -235,3 +236,58 @@ Examples:
 - Home
 - Office
 - Cloud VPS
+
++
++---
++
++## PL-011: GPU Memory as a Resource
++
++**Category:** Domain Model
++
++**Priority:** Low
++
++**Status:** Deferred
++
++**Review Phase:** Architecture
++
++### Question
++
++Should GPU Memory be modelled as a `resources` field in `node.json`?
++
++Named as a Resource example in ADR-001, but not implemented in the v1 schema (Issue #1) — no real device experiment or stated use case has required it yet (Engineering Principle #1: experiment before abstraction). Revisit when a GPU-aware workload (likely M6, AI-assisted planning) makes it relevant.
++
++---
++
++## PL-012: Display as a Node property
++
++**Category:** Domain Model
++
++**Priority:** Low
++
++**Status:** Deferred
++
++**Review Phase:** Architecture
++
++### Question
++
++Should display specs (resolution, size) be modelled as a `resources` field, and should "broken display" be a distinct schema concept rather than a free-form `constraints` entry?
++
++Not added to `node.json` v1 — no real device experiment has required structured display data, and the existing DigitalPhotoFrame app already queries display size live via the Android API at runtime, not from `node.json`. "Broken display" is already expressible today as a free-form `constraints` string if a device actually has one — revisit only if a real case shows that's insufficient.
++
++---
++
++## PL-013: Measured Network Bandwidth as a Resource
++
++**Category:** Domain Model
++
++**Priority:** Low
++
++**Status:** Deferred
++
++**Review Phase:** Architecture
++
++### Question
++
++Should measured/live network bandwidth be modelled as a Resource, distinct from `node.json.resources.connectivity` (which records supported standards, not throughput)?
++
++Named as a Resource example in ADR-001, but not implemented — bandwidth is a live/fluctuating value, so if ever added it likely belongs in `node-status.json` (ADR-003) rather than the static `node.json`, consistent with the existing static-vs-live split between the two artifacts. Not earned by a real use case yet.

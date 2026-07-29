@@ -34,6 +34,7 @@ Should Roles be:
 
 - assigned before deployment,
 - inferred from deployed Workloads,
+
 **Note (added during node.json v1 freeze, Issue #1):** related sub-question surfaced — once role assignment exists, does `node.json.roles` need a way to represent "evaluated and found unsuitable for any role," distinct from "not yet evaluated"? The v1 Inspector omits `roles` entirely rather than guess at this semantics ahead of a real evaluator. Revisit alongside the main question above.
 - or support both approaches?
 

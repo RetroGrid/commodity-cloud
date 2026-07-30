@@ -1,0 +1,13 @@
+I want to turn a rooted Android device into a VPN gateway/router for other devices on my LAN. Before writing anything, walk through:
+
+1. Confirm explicitly whether touching the router's own settings, or any risk to other LAN devices, is acceptable - don't assume.
+2. Check prior art for this exact topology (wired vs. Wi-Fi-hotspot downstream) and the VPN provider's own IPv6/tier/platform quirks before building.
+3. Check kernel/hardware capability first - WireGuard kernel module vs. userspace fallback, nf_tables/xt_addrtype/ip6table_nat support, USB port generation if using an adapter.
+4. Build and validate one layer at a time - tunnel connectivity from the gateway's own shell first, then forwarding, then NAT, then policy routing - and always do the final test from an actual LAN client, never the gateway's own shell.
+5. Explicitly check for Android's hidden network-management layers even if iptables/ip route look correct: netd's tethering authorization (tetherctrl_FORWARD, needs ndc from a real Android shell, not a chroot), per-network ip rule policy routing and any terminal catch-all (check both IPv4 and IPv6 rule tables separately), CLAT/464xlat auto-provisioning, and same-subnet multi-interface routing ambiguity (test both the forwarded-traffic case and the locally-generated-reply case separately - a fix for one doesn't cover the other).
+6. Assume no state survives a reboot/reconnect and build the setup script idempotent from day one.
+7. Document every blocker, root cause, and fix as you find it, not after.
+
+Use ip route get, correlated tcpdump on multiple interfaces, and conntrack -L as your main diagnostic tools.
+
+Reference implementation and full narrative: docs/experiments/rooted-oneplus6t-vpngateway.md, scripts/vpn-gateway-setup.sh, scripts/vpn-gateway-cleanup.sh, and the .claude/skills/rooted-android-network-gateway/SKILL.md skill (if working in the CommodityCloud repo, just invoke that skill directly instead of pasting this whole prompt).

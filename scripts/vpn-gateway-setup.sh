@@ -1,7 +1,14 @@
 #!/bin/bash
 # OnePlus 6T VPN gateway experiment - re-applies gateway state that does not
 # survive a reboot/reconnect (interface IP, forwarding sysctls, WireGuard
-# tunnel, policy routing, NAT). Run as root inside the Pi-hole Debian chroot:
+# tunnel, policy routing, NAT).
+#
+# PREREQUISITE: the Pi Deploy Debian chroot must already be booted and
+# running on the phone before this script is run - start Pi Deploy and
+# confirm SSH access into the chroot first. This script does not boot the
+# chroot for you and will not work from a plain Android shell.
+#
+# Run as root inside the Pi-hole Debian chroot:
 #   bash vpn-gateway-setup.sh
 #
 # Does NOT touch Pi-hole itself - its DNS service is entirely independent of

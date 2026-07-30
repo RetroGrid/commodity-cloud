@@ -16,6 +16,11 @@ Rooted
 Kernel 4.9.227-perf+ (aarch64) - predates WireGuard's mainline merge (Linux 5.6), no native kernel module
 Pi-hole via Pi Deploy (chroot-based Debian environment sharing Android's real kernel network stack - not network-namespaced)
 
+## Prerequisites (before running anything in this doc or `scripts/`)
+
+- **The Pi Deploy Debian chroot must already be booted and running on the phone.** `scripts/vpn-gateway-setup.sh` and `vpn-gateway-cleanup.sh` are meant to be run *inside* that chroot (`bash vpn-gateway-setup.sh` from an SSH session into it) - they will not work run directly from a plain Android shell, and there's nothing in either script that boots the chroot for you. Start Pi Deploy first, confirm SSH access into the chroot, then proceed.
+- A rooted Android shell reachable separately (ADB, ideally Wireless debugging over Wi-Fi rather than USB - see Diagnostic techniques) for the `ndc` commands, which only exist in real Android userspace, not the chroot.
+
 ## Network context
 
 - Router: TP-Link HX510 (Wi-Fi 6 mesh router/AP, not a modem - real ISP termination is a shared point elsewhere in the building, not accessible). No bridge/IP-passthrough mode available - admin panel only exposes **Access Point** or **Router** mode, and per [TP-Link's own FAQ on the difference](https://www.tp-link.com/us/support/faq/2420/), Access Point mode disables the WAN port and all gateway-dependent features (NAT, routing, VPN) entirely - it's a dumb Wi-Fi/switch extender bridged onto an *existing* network, not a way to hand routing to one nominated device while keeping the router's own Wi-Fi/LAN alive. Ruled out early for this reason.

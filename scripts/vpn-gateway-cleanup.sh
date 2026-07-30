@@ -1,7 +1,11 @@
 #!/bin/bash
 # Reverses everything vpn-gateway-setup.sh does, restoring the phone to a
-# plain Pi-hole box with no VPN-gateway role. Run as root inside the
-# Pi-hole Debian chroot: bash vpn-gateway-cleanup.sh
+# plain Pi-hole box with no VPN-gateway role.
+#
+# PREREQUISITE: same as vpn-gateway-setup.sh - the Pi Deploy Debian chroot
+# must already be booted and running; this only works run from inside it.
+#
+# Run as root inside the Pi-hole Debian chroot: bash vpn-gateway-cleanup.sh
 #
 # Pi-hole itself is completely unaffected by this script. Its DNS service
 # (port 53) never depended on the WireGuard tunnel, NAT rule, or policy

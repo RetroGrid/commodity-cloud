@@ -47,7 +47,7 @@ echo "=== 3. Remove policy routing ==="
 # script, since none of this is critical-path for the revert.
 ip rule del from all to "$SUBNET" lookup main pref 7000 2>/dev/null || true
 ip rule del from all iif "$ETH_IFACE" lookup 200 2>/dev/null || true
-ip rule del iif "$WG_IFACE" to "$SUBNET" lookup 201 pref 6999 2>/dev/null || true
+ip rule del to "$SUBNET" lookup 201 pref 6998 2>/dev/null || true
 # Tables 200/201 themselves don't need separate deletion - an unreferenced
 # routing table with no rule pointing at it is simply inert.
 

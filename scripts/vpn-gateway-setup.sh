@@ -88,21 +88,32 @@ if ! ip route show table 200 | grep -q "default dev $WG_IFACE"; then
   ip route add default dev "$WG_IFACE" table 200
 fi
 
-echo "=== 5. Policy routing (return path: tunnel -> LAN client) ==="
+echo "=== 5. Policy routing (return path: tunnel -> LAN client, and any other reply to a LAN client) ==="
 # This exists because of a genuinely surprising bug: eth0 and wlan0 are both
-# on $SUBNET, so when a reply comes back through the tunnel destined for a
-# LAN client, the kernel's ordinary route selection between two equally
-# "directly connected" routes picks wlan0 instead of eth0 - silently
-# missing every rule (ours and netd's) that's scoped to eth0 specifically.
+# on $SUBNET, so anything destined back to a LAN client - not just tunnel
+# return traffic, but ANY reply the phone itself generates (a plain ICMP
+# ping reply, a Pi-hole DNS response) - hits the same ambiguity: the
+# kernel's ordinary route selection between two equally "directly
+# connected" routes to $SUBNET can pick wlan0 instead of eth0, silently
+# missing every rule (ours and netd's) that's scoped to eth0 specifically,
+# and never reaching the LAN client at all (wrong egress interface, wrong
+# source address).
+#
+# First found and fixed narrowly (only "arrived via the tunnel" traffic),
+# then found to recur for the phone's own locally-generated replies too -
+# a plain `ping`/DNS response never "arrives via iif proton", so that
+# narrower rule didn't cover it. This broader version matches ANY traffic
+# to $SUBNET regardless of where it originates, so it covers both cases.
 # Confirmed directly with:
-#   ip route get <lan-client-ip> from <remote-ip> iif proton
+#   ip route get <lan-client-ip>
 # which reported "dev wlan0" before this fix, "dev eth0 table 201" after.
 #
-# The fix is a dedicated policy route matched only on "arrived via the
-# tunnel, destined to our LAN subnet" - it doesn't touch how the phone's
-# own Wi-Fi-originated traffic behaves at all, only this specific case.
-if ! ip rule show | grep -q "iif $WG_IFACE to $SUBNET lookup 201"; then
-  ip rule add iif "$WG_IFACE" to "$SUBNET" lookup 201 pref 6999
+# Rule 6998 is deliberately a lower (higher-priority) number than the
+# "iif eth0 lookup 200" outbound rule and the "lookup main" fallback below,
+# so this always wins for $SUBNET destinations before either of those is
+# even considered.
+if ! ip rule show | grep -q "to $SUBNET lookup 201"; then
+  ip rule add to "$SUBNET" lookup 201 pref 6998
 fi
 if ! ip route show table 201 | grep -q "dev $ETH_IFACE"; then
   ip route add "$SUBNET" dev "$ETH_IFACE" src "$ETH_IP" table 201

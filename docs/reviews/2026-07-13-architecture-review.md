@@ -106,7 +106,7 @@ Shell scripts are platform-specific by definition. Python runs on Linux, macOS, 
 - Cross-platform Python 3 heartbeat script (no third-party dependencies)
 - Runs on Linux, macOS, Windows, Android (Termux)
 - Writes `node-status.json` to `~/.commoditycloud/` (or `%LOCALAPPDATA%\CommodityCloud\` on Windows)
-- Tested and running on macOS (Satya's MacBook Pro)
+- Tested and running on macOS (developer's MacBook Pro)
 
 ### Bug found and fixed: macOS RAM detection
 - Initial implementation used `vm_stat` `Pages free` only (~500MB reported)

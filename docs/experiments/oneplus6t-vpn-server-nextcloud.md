@@ -418,4 +418,6 @@ backend as ways to mount a donor device's local storage into this Nextcloud inst
 - **Multi-device storage pooling**: the first donor device is now live — see
   `docs/experiments/oneplus-one-sftp-storage-donor.md` for the full write-up (an old
   OnePlus One running Termux + OpenSSH, mounted via the `files_external` SFTP backend
-  enabled earlier in this doc).
+  enabled earlier in this doc). That manual process is now also a reusable,
+  self-healing script — `scripts/provision-nextcloud-storage-donor.sh` — for
+  provisioning additional donor devices going forward.

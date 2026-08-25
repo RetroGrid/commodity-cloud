@@ -188,6 +188,55 @@ admin password failed authentication as a direct, correct consequence of the pas
 having been changed — not a bug or a security concern, just a stale credential in an
 ad hoc diagnostic command.
 
+## Reusable provisioning script
+
+Everything above (from "Pivot: Termux + real OpenSSH" onward, minus the two abandoned
+Primitive FTPd attempts) is now distilled into a single, parameterized, self-healing
+script: **`scripts/provision-nextcloud-storage-donor.sh`**. Given an already-connected
+donor device and an already-running Nextcloud instance, it detects the donor's API
+level/architecture, installs the correct Termux build (current release for API 24+, the
+legacy `apt-android-5` bootstrap for API 21-23, refuses outright below API 21), sets up
+`sshd`, and creates+verifies the Nextcloud External Storage mount — one command instead
+of the manual back-and-forth this doc otherwise documents.
+
+It's gated on Nextcloud already existing (checks via `occ status` before doing anything
+else — provisioning a donor before that is pointless) and every phase is idempotent:
+checks real device/Nextcloud state first, only acts if something's actually missing,
+safe to re-run after a partial failure instead of needing a separate cleanup script.
+Each phase also has its own narrow rollback (e.g. a failed mount-creation attempt gets
+`occ files_external:delete`d, not left dangling; a botched `sshd` setup attempt gets
+`pkill`ed via the Termux terminal before retrying).
+
+The script's own header documents an honest limitation worth restating here: because
+`adb shell` can't reach into Termux's private data directory without root (see above),
+the `sshd`-setup phase drives Termux's on-screen terminal via simulated taps/keystrokes
+with fixed waits, not true event-driven synchronization — made robust via externally
+observable verification (does the SFTP port actually open, checked from the Nextcloud
+host) with automatic retries, rather than by pretending perfect timing is possible.
+
+**Real bugs found only by actually running it** (worth remembering for the next script
+like this, not just this one):
+- macOS's BSD `mktemp -t template.apk` doesn't do GNU-style `X` substitution — silently
+  returns a path that doesn't end in `.apk`, which `adb install` then rejects. Fixed by
+  using `mktemp -d` plus a fixed filename instead of relying on `-t` template behavior.
+- Android's shell output has trailing `\r\n`, not just `\n` — an anchored
+  `grep -q '^package:com.termux$'` never matched even when the package genuinely was
+  installed, until piped through `tr -d '\r'` first.
+- `ssh host "command string"` gets re-tokenized by the *remote* shell — an unquoted
+  mount name containing spaces silently split into multiple words across that boundary,
+  even though it was one clean argument locally. Fixed with per-argument `printf '%q'`
+  quoting before the string ever crosses the ssh boundary.
+- `adb shell whoami` doesn't work — that's Android's own toolbox shell, a different
+  process/user context from Termux entirely, and it has no `whoami` binary. Fixed by
+  deriving Termux's actual username the same way Android does:
+  `dumpsys package com.termux` → `userId=NNNNN` → `u0_a$((NNNNN - 10000))`.
+
+Verified end-to-end with a real second run against the already-provisioned OnePlus One
+after fixing all four: correctly detected Termux/`sshd`/the mount as already in place
+and skipped re-doing any of it (including *not* resetting a working password just
+because the script ran again — the idempotency check exists specifically to prevent
+that), then successfully re-scanned the mount.
+
 ## Status at time of writing
 
 - SFTP donor mount: **working and verified**, real content scanned successfully.

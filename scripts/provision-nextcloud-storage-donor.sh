@@ -453,9 +453,16 @@ main() {
   # own rollback_* first) - so `phase_X || { rollback_X; die }` chains here
   # would be unreachable dead code, since die() exits the process before
   # control ever returns to this `||`. A trap is what actually guarantees
-  # the screen timeout gets restored regardless of which phase below this
-  # point dies, or how.
-  trap rollback_screen_timeout EXIT
+  # cleanup happens regardless of which phase below this point dies, or how.
+  #
+  # rollback_install_termux is included here too, not just
+  # rollback_screen_timeout: if phase_install_termux freshly installs Termux
+  # this run and phase_setup_sshd then fails all its retries and dies, no
+  # failure path was calling rollback_install_termux - a fresh install was
+  # being left behind on the donor device. It's already guarded by
+  # TERMUX_INSTALLED_THIS_RUN, so it's a safe no-op here on any run where
+  # Termux was already present before this script touched anything.
+  trap 'rollback_install_termux; rollback_screen_timeout' EXIT
 
   phase_install_termux    # dies internally on failure; a failed install leaves no partial state to roll back
   phase_setup_sshd        # dies internally, rolling back its own stuck sshd first

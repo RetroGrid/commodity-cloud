@@ -87,8 +87,16 @@ fi
 # arriving on eth0 (i.e. forwarded from another device on the LAN, not
 # something the phone generated itself) gets looked up in table 200 instead
 # of the main table.
+#
+# Explicit pref 7100 (not left to iproute2's auto-assigned default): this
+# MUST be evaluated after the "to $SUBNET lookup main" rule at pref 7000
+# above, or same-subnet traffic gets pulled into table 200 before that rule
+# ever gets a chance to claim it - silently reintroducing the exact
+# same-subnet routing ambiguity step 5 below exists to fix. Relying on the
+# kernel/iproute2's auto-assigned priority instead of a pinned value here
+# would make that ordering an assumption, not a guarantee.
 if ! ip rule show | grep -q "iif $ETH_IFACE lookup 200"; then
-  ip rule add from all iif "$ETH_IFACE" lookup 200
+  ip rule add from all iif "$ETH_IFACE" lookup 200 pref 7100
 fi
 # Table 200 only contains one thing: send everything through the tunnel.
 if ! ip route show table 200 | grep -q "default dev $WG_IFACE"; then
@@ -122,7 +130,14 @@ echo "=== 5. Policy routing (return path: tunnel -> LAN client, and any other re
 if ! ip rule show | grep -q "to $SUBNET lookup 201"; then
   ip rule add to "$SUBNET" lookup 201 pref 6998
 fi
-if ! ip route show table 201 | grep -q "dev $ETH_IFACE"; then
+# Match the specific $SUBNET-via-eth0 route, not just any line mentioning
+# "dev eth0" - a loose substring match here would false-positive on a
+# stale/partial route left over from an earlier manual debugging session
+# (this table has been hand-edited under active debugging before, per the
+# comments above), skip re-adding the correct route, and silently leave
+# return-path routing to LAN clients broken while this script reports
+# success.
+if ! ip route show table 201 | grep -q "^$SUBNET dev $ETH_IFACE"; then
   ip route add "$SUBNET" dev "$ETH_IFACE" src "$ETH_IP" table 201
 fi
 # Print all three so a failure here is immediately visible, not silent.

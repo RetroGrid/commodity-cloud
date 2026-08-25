@@ -62,6 +62,7 @@
 #     [--nc-host <ssh-alias>]          # default: 6t
 #     [--nc-occ-path <path>]           # default: /var/www/nextcloud/occ
 #     [--nc-occ-user <user>]           # default: www-data
+#     [--nc-scan-user <user>]          # default: admin (whose file tree to scan the new mount under)
 #     [--donor-root <path>]            # default: /storage/emulated/0
 #     [--sftp-port <port>]             # default: 8022
 #     [--screen-timeout-ms <ms>]       # default: 1800000 (30 min)
@@ -89,6 +90,7 @@ set -uo pipefail
 NC_HOST="6t"
 NC_OCC_PATH="/var/www/nextcloud/occ"
 NC_OCC_USER="www-data"
+NC_SCAN_USER="admin"  # which Nextcloud user's file tree to scan the mount under - override with --nc-scan-user if your instance's admin account isn't literally named "admin"
 DONOR_ROOT="/storage/emulated/0"
 SFTP_PORT="8022"
 SCREEN_TIMEOUT_MS="1800000"
@@ -119,6 +121,7 @@ while [[ $# -gt 0 ]]; do
     --nc-host) NC_HOST="$2"; shift 2 ;;
     --nc-occ-path) NC_OCC_PATH="$2"; shift 2 ;;
     --nc-occ-user) NC_OCC_USER="$2"; shift 2 ;;
+    --nc-scan-user) NC_SCAN_USER="$2"; shift 2 ;;
     --donor-root) DONOR_ROOT="$2"; shift 2 ;;
     --sftp-port) SFTP_PORT="$2"; shift 2 ;;
     --screen-timeout-ms) SCREEN_TIMEOUT_MS="$2"; shift 2 ;;
@@ -135,6 +138,12 @@ if [[ -z "$DONOR_PASSWORD" ]]; then
   GENERATED_PASSWORD=1
 else
   GENERATED_PASSWORD=0
+  # '&' and '%' both break termux_send's injection (see its own comments) -
+  # fail fast here with a clear message instead of deep inside the sshd
+  # phase with a cryptic "refusing to inject" error.
+  case "$DONOR_PASSWORD" in
+    *"&"*|*"%"*) die "--donor-password cannot contain '&' or '%' - both break how this script types it into the device (see termux_send). Pick a password without those characters." ;;
+  esac
 fi
 
 # ---------------------------------------------------------------------------
@@ -183,6 +192,13 @@ donor_port_reachable_from_nc_host() {
 termux_send() {
   local cmd="$1"
   [[ "$cmd" != *"&"* ]] || die "termux_send: refusing to inject a command containing '&' (breaks input text on this Android vintage): $cmd"
+  # '%' is input text's OWN escape character (that's what makes our %s space
+  # encoding work at all) - a literal '%' already present in $cmd (e.g. a
+  # user-supplied password containing "%s") would get decoded a second time
+  # by Android alongside our intentional encoding, so the value actually
+  # typed on the device would silently differ from $cmd. Reject rather than
+  # risk that ambiguity.
+  [[ "$cmd" != *"%"* ]] || die "termux_send: refusing to inject a command containing '%' (input text's own escape character - would be ambiguously double-decoded): $cmd"
   local encoded="${cmd// /%s}"
   adbd shell input text "$encoded"
   adbd shell input keyevent 66  # Enter
@@ -225,7 +241,11 @@ phase_diagnostics() {
   DONOR_API="$(adbd shell getprop ro.build.version.sdk | tr -d '\r')"
   DONOR_ABI="$(adbd shell getprop ro.product.cpu.abi | tr -d '\r')"
   DONOR_MODEL="$(adbd shell getprop ro.product.model | tr -d '\r')"
-  DONOR_IP="$(adbd shell ip addr show wlan0 2>/dev/null | grep -oE 'inet [0-9.]+' | awk '{print $2}' | tr -d '\r')"
+  # head -1: wlan0 can legitimately report more than one inet line (e.g. a
+  # transient address during a WiFi reconnect) - without this, DONOR_IP would
+  # collapse into a multi-line value that breaks both the /dev/tcp
+  # reachability check below and the eventual occ --config host=... value.
+  DONOR_IP="$(adbd shell ip addr show wlan0 2>/dev/null | grep -oE 'inet [0-9.]+' | awk '{print $2}' | tr -d '\r' | head -1)"
 
   [[ -n "$DONOR_API" ]] || die "Could not read API level from donor - is it actually connected?"
   [[ -n "$DONOR_IP" ]] || die "Donor has no wlan0 IPv4 address - it needs to be on the same WiFi/LAN as the Nextcloud host before this can work."
@@ -276,7 +296,12 @@ phase_install_termux() {
     url="https://github.com/termux/termux-app/releases/download/${TERMUX_LEGACY_TAG}/termux-app_${TERMUX_LEGACY_TAG}+apt-android-5-github-debug_${DONOR_ABI}.apk"
   fi
   log "Downloading $url"
-  curl -sL "$url" -o "$tmp_apk" || die "Failed to download Termux APK from $url"
+  # -f: without this, curl exits 0 even on an HTTP error response (e.g. a
+  # renamed/removed pinned release asset returning a 404 page), and the
+  # 404's HTML body gets written to $tmp_apk as if it were a real APK - the
+  # || die below would never fire, and adb install would fail later with a
+  # confusing APK-parsing error instead of this script's own clear message.
+  curl -sLf "$url" -o "$tmp_apk" || die "Failed to download Termux APK from $url (HTTP error, or the pinned release/asset no longer exists - check TERMUX_LEGACY_TAG/TERMUX_MODERN_TAG)"
   adbd install "$tmp_apk" || die "adb install of Termux failed"
   rm -f "$tmp_apk"
   TERMUX_INSTALLED_THIS_RUN=1
@@ -353,14 +378,22 @@ MOUNT_ID=""
 phase_configure_mount() {
   log "Checking for an existing mount named '$MOUNT_NAME'..."
   local existing
-  existing="$(occ files_external:list --output=json 2>/dev/null | python3 -c "
-import json,sys
+  # MOUNT_NAME is passed via environment, not interpolated into the Python
+  # source string - interpolating it directly (e.g. `== '$MOUNT_NAME':`)
+  # means a name containing a single quote is parsed as Python code, not
+  # data: a SyntaxError that this pipeline previously never checked the
+  # exit status of, so `existing` silently came back empty and the script
+  # would create a duplicate mount on every re-run instead of detecting the
+  # real one - defeating the whole idempotency point of this phase.
+  existing="$(occ files_external:list --output=json 2>/dev/null | MOUNT_NAME_ENV="$MOUNT_NAME" python3 -c "
+import json, os, sys
+target = os.environ['MOUNT_NAME_ENV']
 try:
     mounts = json.load(sys.stdin)
 except Exception:
     mounts = []
 for m in mounts:
-    if m.get('mount_point','').lstrip('/') == '$MOUNT_NAME':
+    if m.get('mount_point', '').lstrip('/') == target:
         print(m['mount_id'])
         break
 ")"
@@ -371,12 +404,24 @@ for m in mounts:
   else
     log "Creating new external storage mount..."
     local create_out
-    create_out="$(occ files_external:create "$MOUNT_NAME" sftp password::password \
+    create_out="$(occ files_external:create --output=json "$MOUNT_NAME" sftp password::password \
       --config "host=$DONOR_IP" --config "port=$SFTP_PORT" \
       --config "user=$DONOR_SSH_USER" --config "password=$DONOR_PASSWORD" \
       --config "root=$DONOR_ROOT" 2>&1)"
-    MOUNT_ID="$(echo "$create_out" | grep -oE '[0-9]+$' | tail -1)"
-    [[ -n "$MOUNT_ID" ]] || die "Could not parse mount id from occ output: $create_out"
+    # Structured JSON parsing, not "trailing digits of the output" - the old
+    # `grep -oE '[0-9]+$' | tail -1` approach would happily grab an unrelated
+    # number from any trailing PHP notice/deprecation warning/version nag and
+    # treat it as the mount id, silently pointing the later verify/rollback
+    # at the wrong storage mount.
+    MOUNT_ID="$(echo "$create_out" | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    print(data[0]['mount_id'])
+except Exception:
+    pass
+" 2>/dev/null)"
+    [[ -n "$MOUNT_ID" && "$MOUNT_ID" =~ ^[0-9]+$ ]] || die "Could not parse a valid mount id from occ output: $create_out"
     MOUNT_CREATED_THIS_RUN=1
   fi
 
@@ -403,14 +448,24 @@ main() {
   phase_diagnostics
 
   phase_screen_timeout || { rollback_screen_timeout; die "screen timeout phase failed"; }
-  phase_install_termux || { rollback_install_termux; rollback_screen_timeout; die "Termux install phase failed"; }
-  phase_setup_sshd || { rollback_setup_sshd; rollback_install_termux; rollback_screen_timeout; die "sshd setup phase failed"; }
+  # Every phase from here on already calls die() internally on its own
+  # failure path (phase_setup_sshd and phase_configure_mount also call their
+  # own rollback_* first) - so `phase_X || { rollback_X; die }` chains here
+  # would be unreachable dead code, since die() exits the process before
+  # control ever returns to this `||`. A trap is what actually guarantees
+  # the screen timeout gets restored regardless of which phase below this
+  # point dies, or how.
+  trap rollback_screen_timeout EXIT
+
+  phase_install_termux    # dies internally on failure; a failed install leaves no partial state to roll back
+  phase_setup_sshd        # dies internally, rolling back its own stuck sshd first
   phase_wireless_adb
-  phase_configure_mount || { rollback_configure_mount; die "Nextcloud mount phase failed"; }
+  phase_configure_mount   # dies internally, rolling back its own half-created mount first
 
   log "Scanning the new mount for real content..."
-  occ files:scan --path="admin/files/${MOUNT_NAME}" || warn "Scan failed or found nothing - check manually, mount itself verified OK above."
+  occ files:scan --path="${NC_SCAN_USER}/files/${MOUNT_NAME}" || warn "Scan failed or found nothing - check manually, mount itself verified OK above. If your instance's admin account isn't literally named 'admin', pass --nc-scan-user."
 
+  trap - EXIT
   rollback_screen_timeout  # done provisioning, restore the device's normal timeout
 
   cat <<SUMMARY

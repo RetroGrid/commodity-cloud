@@ -19,8 +19,15 @@
 # vpn-gateway-setup.sh's comments). It's for reverting cleanly *without*
 # doing either of those.
 #
-# Also revokes netd's own tethering authorization, via `ndc` from a real
-# Android shell (adb shell -> su) - see the bottom of this file.
+# Partially revokes netd's own tethering authorization via `ndc` from a real
+# Android shell (adb shell -> su) - see the bottom of this file. Only 2 of
+# the 4 `ndc` commands vpn-gateway-setup.sh's header documents as required
+# (the `nat enable` pair) are reversed there. `ndc ipfwd enable commoditycloud`
+# and `ndc tether interface add eth0` are NOT reversed by this script - their
+# symmetric-looking inverses weren't verified working this session, and
+# guessing at unverified `ndc` syntax felt riskier than leaving this a known,
+# explicit gap. Full `ndc` authorization scripting (setup AND teardown) is
+# tracked separately in GitHub issue #14, not silently assumed done here.
 
 set -e
 
@@ -69,7 +76,10 @@ ip rule show
 
 echo ""
 echo "!!! One more step, from a real Android shell (adb shell -> su), to"
-echo "!!! revoke netd's own tethering authorization for this interface pair:"
+echo "!!! revoke the NAT portion of netd's tethering authorization for this"
+echo "!!! interface pair (this does NOT reverse 'ndc ipfwd enable' or"
+echo "!!! 'ndc tether interface add eth0' from setup - see the header comment"
+echo "!!! above for why, and GitHub issue #14 for full ndc automation):"
 echo ""
 echo "    ndc nat disable eth0 proton 0"
 echo "    ndc nat disable proton eth0 0"
